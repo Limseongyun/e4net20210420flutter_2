@@ -21,7 +21,8 @@ class FirstLoading extends StatelessWidget {
             return HasError();
           }
           if(snapshot.connectionState == ConnectionState.done){
-            return AuthScreenBuilder();
+            return AuthScreen();
+            // return AuthScreenBuilder();
           }
           return Splash();
         },
