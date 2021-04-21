@@ -1,3 +1,5 @@
+import 'dart:html';
+
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -250,6 +252,77 @@ class _StorageMainState extends State<StorageMain> {
           },
         ),
       ],
+    );
+  }
+}
+
+
+class UploadTaskListTile extends StatelessWidget {
+  final fs.UploadTask task;
+  final onDismissed;
+  const UploadTaskListTile(
+      Key key,
+      this.task,
+      this.onDismissed
+      ) : super(key: key);
+
+  String _byteTransferred(fs.TaskSnapshot snapshot){
+    return '${snapshot.bytesTransferred}/${snapshot.totalBytes}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder(
+        stream: task.snapshotEvents,
+        builder: (context,AsyncSnapshot<fs.TaskSnapshot> asnycSnapshot){
+          Widget subtitle = const Text('---');
+          fs.TaskSnapshot snapshot = asnycSnapshot.data;
+          fs.TaskState state = snapshot.state;
+          if(asnycSnapshot.hasError){
+            if(asnycSnapshot.error is fs.FirebaseException
+                && (asnycSnapshot.error as fs.FirebaseException).code =='canceled'){
+              subtitle = const Text('Uplaod candeled.');
+            } else {
+              print(asnycSnapshot.error);
+              subtitle = const Text('Something wnet wrong');
+            }
+          } else if(snapshot != null){
+            subtitle = Text('$state: ${_byteTransferred(snapshot)} byte sent');
+          }
+          return Dismissible(
+              key: Key(task.hashCode.toString()),
+              onDismissed: (_) => onDismissed(),
+              child: ListTile(
+                title: Text('Upload Task #${task.hashCode}'),
+                subtitle: subtitle,
+                trailing: Row(
+                 mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if(state == fs.TaskState.running)
+                    Material(
+                      child: IconButton(
+                        icon: Icon(Icons.pause),
+                        onPressed: task.pause,
+                      ),
+                    ),
+                    if(state == fs.TaskState.running)
+                    Material(
+                      child: IconButton(
+                        icon: Icon(Icons.cancel),
+                        onPressed: task.cancel,
+                      ),
+                    ),
+                    if(state == fs.TaskState.paused)
+                    Material(
+                      child: IconButton(
+                        icon: Icon(Icons.file_upload),
+                        onPressed: task.resume,
+                      ),
+                    )
+                  ],
+                ),
+              ));
+        },
     );
   }
 }
