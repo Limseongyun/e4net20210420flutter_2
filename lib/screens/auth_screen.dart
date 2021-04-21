@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_e4net_2/screens/storage_main.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:local_auth/auth_strings.dart';
 import 'package:local_auth/local_auth.dart';
@@ -160,7 +161,11 @@ class _AuthScreenState extends State<AuthScreen> {
     if(_firebaseAuthState == _FirebaseAuthState.pass){
       Timer(Duration(milliseconds: 500),(){
         print('navigated to main');
-        //TODO Navigator To main
+        Navigator.pushReplacement(
+            context, MaterialPageRoute(
+            builder: (context) {
+              return StorageMain();
+            },));
       });
     }
   }
