@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_e4net_2/screens/webview_screen.dart';
 
 class StorageMain extends StatefulWidget {
   @override
@@ -35,7 +36,14 @@ class _StorageMainState extends State<StorageMain> {
         ),
         IconButton(
           icon: Icon(Icons.wifi_tethering),
-          onPressed: (){},
+          onPressed: (){
+            Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) {
+                  return WebViewScreen();
+                },)
+            );
+          },
         ),
       ],
     );
