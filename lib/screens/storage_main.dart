@@ -1,4 +1,3 @@
-import 'dart:html';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_e4net_2/screens/qrscan_screen.dart';
 import 'package:flutter_e4net_2/screens/webview_screen.dart';
 import 'package:firebase_storage/firebase_storage.dart' as fs;
+import 'package:open_file/open_file.dart';
 import 'dart:io' as io;
 
 import 'package:path_provider/path_provider.dart';
@@ -37,7 +37,32 @@ class _StorageMainState extends State<StorageMain> {
     }
     if(!mounted) return;
     print(_paths);
-    //TODO 파일을 선택했으니까 파일을 업로드 해야함
+    _paths.forEach((path) async{
+      fs.UploadTask task =  await upload(path.name, path.path);
+      if(task != null){
+        setState(() {
+          _tasks =[..._tasks, task];
+        });
+        task.whenComplete((){
+          isMkdir = false;
+          mkdir = null;
+          _tasks.removeWhere((element) => element.snapshot == task.snapshot);
+          myListsHandler(nowPath: nowPath);
+        });
+      }
+    });
+  }
+
+  Future<fs.UploadTask> upload(fileName, filePath){
+    fs.Reference ref = fs.FirebaseStorage.instance.ref(nowPath).child(fileName);
+    fs.UploadTask uploadTask;
+    uploadTask = ref.putFile(io.File(filePath));
+    return Future.value(uploadTask);
+  }
+
+  Future<void> delFromStorage(String path) async{
+    await fs.FirebaseStorage.instance.ref(path).delete();
+    myListsHandler(nowPath: nowPath);
   }
 
   Future<List<ListTile>> getMyLists({String path, String mkdirName}) async {
@@ -95,13 +120,15 @@ class _StorageMainState extends State<StorageMain> {
       ));
     }
 
+
     result.items.forEach((file) {
-      //TODO 앱디렉토리에 파일이 존재하는지 체크
+      io.File downloadToFile = io.File('${appDocDir.path}/fireStorage/$nowPath${file.name}');
+      bool isExist = downloadToFile.existsSync();
       temp.add(ListTile(
         title: Text(file.name),
         leading: Stack(
           children: [
-
+            if(isExist) Icon(Icons.check),
             Icon(Icons.file_copy_outlined),
           ],
         ),
@@ -115,13 +142,13 @@ class _StorageMainState extends State<StorageMain> {
           },
           onSelected: (value) {
             if(value =='del'){
-              //TODO 지움
+              delFromStorage(nowPath + file.name);
             }
             if(value == 'down'){
-              //TODO 다운
+              _downloadToAppDir(nowPath + file.name);
             }
             if(value == 'open'){
-              //TODO 오픈
+              openfile(nowPath + file.name);
             }
           },
         ),
@@ -137,6 +164,31 @@ class _StorageMainState extends State<StorageMain> {
       });
     });
   }
+
+  _downloadToAppDir(String path) async{
+    io.Directory appDocDic = await getApplicationDocumentsDirectory();
+    io.File downloadToFile = io.File('${appDocDic.path}/fireStorage$path');
+    var a = path.split('/')..removeLast();
+    io.Directory isDir = io.Directory('${appDocDic.path}/fireStorage${a.join('/')}');
+    bool hasExisted = (await isDir.exists());
+    if(!hasExisted){
+      await isDir.create(recursive: true);
+    }
+    try{
+      var res = await fs.FirebaseStorage.instance.ref(path).writeToFile(downloadToFile);
+    } on fs.FirebaseException catch(e){
+      print(e);
+    }
+    myListsHandler(nowPath: nowPath);
+
+  }
+  Future<void> openfile(String path) async{
+    io.Directory appDocDir =await getApplicationDocumentsDirectory();
+    io.File opFilePath = io.File('${appDocDir.path}/fireStorage$path');
+    final res = await OpenFile.open(opFilePath.path);
+    print(res);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -164,13 +216,19 @@ class _StorageMainState extends State<StorageMain> {
                   },
                   itemCount: myList.length),
             ),
-            if(false)
             Align(
               alignment: Alignment.bottomCenter,
               child: Container(
                 color: Colors.white,
                 constraints: BoxConstraints(maxHeight: 200),
-                //TODO child 생성
+                child: ListView.builder(
+                  scrollDirection: Axis.vertical,
+                  shrinkWrap: true,
+                  itemCount: _tasks.length,
+                  itemBuilder: (context, index) {
+                    return UploadTaskListTile(task: _tasks[index],onDismissed: ()=>removeTaskAtIndex(index),);
+                  },
+                ),
               ),
             )
           ],
@@ -178,7 +236,11 @@ class _StorageMainState extends State<StorageMain> {
       )
     );
   }
-
+  void removeTaskAtIndex(int index){
+    setState(() {
+      _tasks = _tasks..removeAt(index);
+    });
+  }
   Widget getAppBar(BuildContext context){
     final GlobalKey<FormState> _formKey =GlobalKey<FormState>();
     return AppBar(
@@ -224,7 +286,11 @@ class _StorageMainState extends State<StorageMain> {
                 },
             );
             print('디렉토리 팝업 결과 : $res');
-            //TODO 만약 값이 있다면 임시디렉토리 생성
+            if(res != null){
+              isMkdir = true;
+              mkdir = res;
+              myListsHandler(nowPath: nowPath);
+            }
           },
         ),
         IconButton(
@@ -260,11 +326,11 @@ class _StorageMainState extends State<StorageMain> {
 class UploadTaskListTile extends StatelessWidget {
   final fs.UploadTask task;
   final onDismissed;
-  const UploadTaskListTile(
-      Key key,
-      this.task,
-      this.onDismissed
-      ) : super(key: key);
+  const UploadTaskListTile({
+    Key key,
+    this.task,
+    this.onDismissed
+  }) : super(key: key);
 
   String _byteTransferred(fs.TaskSnapshot snapshot){
     return '${snapshot.bytesTransferred}/${snapshot.totalBytes}';
