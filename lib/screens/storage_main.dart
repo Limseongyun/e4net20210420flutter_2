@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_e4net_2/screens/qrscan_screen.dart';
 import 'package:flutter_e4net_2/screens/webview_screen.dart';
 
 class StorageMain extends StatefulWidget {
@@ -32,7 +33,16 @@ class _StorageMainState extends State<StorageMain> {
         ),
         IconButton(
           icon: Icon(Icons.qr_code),
-          onPressed: (){},
+          onPressed: (){
+            Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (context) {
+                      return QrScanScreen();
+                    },
+                )
+            );
+          },
         ),
         IconButton(
           icon: Icon(Icons.wifi_tethering),
