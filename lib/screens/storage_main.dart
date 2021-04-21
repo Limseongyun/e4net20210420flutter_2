@@ -343,7 +343,7 @@ class UploadTaskListTile extends StatelessWidget {
         builder: (context,AsyncSnapshot<fs.TaskSnapshot> asnycSnapshot){
           Widget subtitle = const Text('---');
           fs.TaskSnapshot snapshot = asnycSnapshot.data;
-          fs.TaskState state = snapshot.state;
+          fs.TaskState state = snapshot?.state;
           if(asnycSnapshot.hasError){
             if(asnycSnapshot.error is fs.FirebaseException
                 && (asnycSnapshot.error as fs.FirebaseException).code =='canceled'){
